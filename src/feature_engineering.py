@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-import sklearn
+from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 
 from src import config
@@ -8,7 +8,7 @@ from src import config
 
 def feature_engineering(df_users, df_sessions):
     # drop instances with null values in 'date_first_booking' feature
-    df_users = df_users.dropna(subset=['date_first_booking'])
+    df_users.dropna(subset=['date_first_booking'], inplace=True)
 
     # replace the outliers by the maximum and minimum limit
     age_lower_limit = 18
@@ -22,25 +22,24 @@ def feature_engineering(df_users, df_sessions):
     df_users['first_affiliate_tracked'].fillna('untracked', inplace=True)
     df_sessions['action_type'].fillna('-unknown-', inplace=True)
     df_sessions['action_detail'].fillna('-unknown-', inplace=True)
-    df_sessions = df_sessions.dropna()
+    df_sessions.dropna(inplace=True)
 
     # Categorical variable encoding
-    users_one_hot = ['gender', 'signup_method', 'signup_app' 'language', 'affiliate_channel',
-                     'affiliate_provider', 'first_affiliate_tracked', 'first_device_type', 'first_browser',
-                     'country_destination']
-    sessions_one_hot = ['action_type', 'device_type']
-    sessions_label_encoding = ['action', 'action_detail']
+    users_one_hot = ['gender', 'signup_method', 'signup_app', 'language', 'affiliate_channel',
+                     'affiliate_provider', 'first_affiliate_tracked', 'first_device_type', 'first_browser']
+    users_label_encoding = ['country_destination']
+    sessions_label_encoding = ['action', 'action_type', 'action_detail', 'device_type']
 
-    # TODO: remove original column
     for col in users_one_hot:
         tmp = pd.get_dummies(df_users[col], prefix=col)
         df_users = pd.concat([df_users, tmp], axis=1)
-
-    for col in sessions_one_hot:
-        tmp = pd.get_dummies(df_sessions[col], prefix=col)
-        df_sessions = pd.concat([df_sessions, tmp], axis=1)
+    df_users.drop(users_one_hot, axis=1, inplace=True)
 
     label_encoders = {}
+    for col in users_label_encoding:
+        label_encoders[col] = LabelEncoder()
+        df_users[col] = label_encoders[col].fit_transform(df_users[col])
+
     for col in sessions_label_encoding:
         label_encoders[col] = LabelEncoder()
         df_sessions[col] = label_encoders[col].fit_transform(df_sessions[col])
@@ -52,13 +51,17 @@ def feature_engineering(df_users, df_sessions):
     df_users['month_first_active'] = df_users['time_first_active'].dt.month
     df_users['week_first_active'] = df_users['time_first_active'].dt.week
     df_users['dayofweek_first_active'] = df_users['time_first_active'].dt.dayofweek
-    df_users['date_first_active'] = df_users['time_first_active'].dt.date
+    df_users.drop(['time_first_active'], axis=1, inplace=True)
+    df_users.drop(['date_account_created'], axis=1, inplace=True)
+    df_users.drop(['date_first_booking'], axis=1, inplace=True)
 
     # feature aggregation
     agg_dict = {
         'secs_elapsed': ['sum', 'mean'],
-        'action': ['nunique', 'count'],
-        'device_type': ['nunique', 'count']
+        'action': ['nunique'],
+        'device_type': ['nunique'],
+        'action_type': ['nunique'],
+        'action_detail': ['nunique']
     }
 
     df_agg = df_sessions.groupby('user_id').agg(agg_dict)
@@ -70,4 +73,4 @@ def feature_engineering(df_users, df_sessions):
     X = df[features]
 
     # X_train, X_test, y_train, y_test
-    return sklearn.model_selection.train_test_split(X, y, test_size=0.25, random_state=config.seed)
+    return train_test_split(X, y, test_size=0.25, random_state=config.seed)

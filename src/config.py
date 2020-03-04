@@ -1,5 +1,5 @@
 # CSV files directory
-DATA_PATH = "C:\\Users\\shiva\\CEBD1260-final\\hotel-booking\\data"
+DATA_PATH = "..\\data"
 
 #seed
 seed = 0

@@ -1,5 +1,5 @@
-from sklearn.model_selection import ParameterGrid, train_test_split
 import lightgbm as lgb
+from sklearn.model_selection import ParameterGrid, train_test_split
 
 from src import config
 from src.config import lgb_params_grid

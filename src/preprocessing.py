@@ -6,7 +6,6 @@ from src import config
 
 
 def load_data():
-
     print("Loading CSV files...")
 
     zf = zipfile.ZipFile(config.DATA_PATH + "\\new-user-bookings.zip")

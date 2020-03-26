@@ -1,6 +1,6 @@
-from sklearn.model_selection import train_test_split
 import numpy as np
 import pandas as pd
+from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 
 from src import config
@@ -12,12 +12,23 @@ def feature_engineering(df_users, df_sessions):
     df_users.dropna(subset=['date_first_booking'], inplace=True)
     print('     "date_first_booking" with NaN values, dropped!')
 
-    # replace the outliers by the maximum and minimum limit
+    # handling outliers
+    # df_users.age
     age_lower_limit = 18
     age_upper_limit = 99
     df_users['age'] = np.where(df_users['age'] > age_upper_limit, age_upper_limit,
                                np.where(df_users['age'] < age_lower_limit, age_lower_limit, df_users['age']))
     print('     Outliers in "age", replaced!')
+
+    # df_sessions.secs_elapsed
+    Q1 = df_sessions['secs_elapsed'].quantile(0.25)
+    Q3 = df_sessions['secs_elapsed'].quantile(0.75)
+    IQR = Q3 - Q1
+    secs_lower_limit = 0
+    secs_upper_limit = round(Q3 + 1.5 * IQR)
+    df_sessions['secs_elapsed'] = np.where(df_sessions['secs_elapsed'] > secs_upper_limit, secs_upper_limit,
+                                           np.where(df_sessions['secs_elapsed'] < secs_lower_limit, secs_lower_limit,
+                                                    df_sessions['secs_elapsed']))
 
     # fill missing values
     age_median = df_users['age'].median()
@@ -76,7 +87,7 @@ def feature_engineering(df_users, df_sessions):
 
     # feature aggregation
     agg_dict = {
-        'secs_elapsed': ['sum', 'mean'],
+        'secs_elapsed': ['sum', 'mean', 'min', 'max', 'median'],
         'action': ['nunique', 'count'],
         'device_type': ['nunique', 'count'],
         'action_type': ['nunique', 'count'],
